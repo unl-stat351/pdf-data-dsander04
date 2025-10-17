@@ -94,11 +94,11 @@ meta_2015 <- pdf_info("unl-department-budget-2015-2016.pdf")
 meta_2020 <- pdf_info("unl-department-budget-2020-2021.pdf")
 meta_2025 <- pdf_info("unl-department-budget-2025-2026.pdf")
 
-meta_2010_1[["metadata"]]
-meta_2010_2[["metadata"]]
-meta_2015[["metadata"]]
-meta_2020[["metadata"]]
-meta_2025[["metadata"]]
+#meta_2010_1[["metadata"]]
+#meta_2010_2[["metadata"]]
+#meta_2015[["metadata"]]
+#meta_2020[["metadata"]]
+#meta_2025[["metadata"]]
 
 meta_combined <- list(
     "2010_1" = meta_2010_1[["metadata"]],
@@ -122,6 +122,7 @@ df <- df %>%
 ```
 
 ```{r, eval=FALSE}
+#cleani
 library(tidyr)
 clean <- function(df){ 
     
@@ -153,7 +154,7 @@ Considering what you discovered in the previous step, do you need to adjust your
 ------------------------------------------------------------------------
 
 ```{r}
-df
+# Don't know if I really have anything to put here?
 ```
 
 ------------------------------------------------------------------------
@@ -172,7 +173,50 @@ Develop a function that takes the path to a PDF file and identifies which pages 
 
 ------------------------------------------------------------------------
 
-> Code Chunk
+```{r}
+#find_page_number <- function(file) {
+  #txt <- pdf_text(file)
+  #txt_by_page <- map_chr(txt, ~paste(., collapse=" "))
+  #which(str_detect(txt_by_page, "Table 1"))
+#}
+#find_page_number("unl-department-budget-2010-2011-pt1.pdf")
+
+library(pdftools)
+library(stringr)
+library(dplyr)
+library(tibble)
+
+find_page_number <- function(file_path) {
+  text <- pdf_text(file_path)
+  #doing this because it is so late and I'm losing my mind
+  text <- text[-622] 
+  
+  keyword1 <- "salaries"
+  keyword2 <- "operating"
+  
+  has_budget <- str_detect(text, regex(paste0("\\b", keyword1, "\\b"), ignore_case = TRUE))
+  has_permanent <- str_detect(text, regex(paste0("\\b", keyword2, "\\b"), ignore_case = TRUE))
+  
+  salary_true <- has_budget & has_permanent
+  
+  if (any(salary_true)) {
+    start_page <- which(salary_true)[1]
+    end_page <- which(salary_true)[length(which(salary_true))]
+  } else {
+    start_page <- NA_integer_
+    end_page <- NA_integer_
+  }
+  
+  tibble(
+    file_name = basename(file_path),
+    start_page = start_page,
+    end_page = end_page
+  )
+}
+find_page_number(("unl-department-budget-2010-2011-pt1.pdf"))
+find_page_number(("unl-department-budget-2010-2011-pt2.pdf"))
+
+```
 
 ------------------------------------------------------------------------
 
