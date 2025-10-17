@@ -27,6 +27,9 @@ What type of PDF files are these? Based on the format, what would you have to do
 ```{r}
 library(pdftools)
 library(stringr)
+library(dplyr)
+library(purrr)
+library(xml2)
 Sys.setenv(JAVA_HOME="C:/Users/Dominic Sander/AppData/Local/R/win-library/4.5/rJava/libs/x64/rJava.dll")
 library(rJava)
 library(tabulapdf)
@@ -84,13 +87,62 @@ Use a PDF library to programmatically examine each PDF. Use a functional approac
 ------------------------------------------------------------------------
 
 ```{r}
-meta <- pdf_text("unl-department-budget-2010-2011-pt1.pdf")
+# <- pdf_text("unl-department-budget-2010-2011-pt1.pdf")
+meta_2010_1 <- pdf_info("unl-department-budget-2010-2011-pt1.pdf")
+meta_2010_2 <- pdf_info("unl-department-budget-2010-2011-pt2.pdf")
+meta_2015 <- pdf_info("unl-department-budget-2015-2016.pdf")
+meta_2020 <- pdf_info("unl-department-budget-2020-2021.pdf")
+meta_2025 <- pdf_info("unl-department-budget-2025-2026.pdf")
 
+meta_2010_1[["metadata"]]
+meta_2010_2[["metadata"]]
+meta_2015[["metadata"]]
+meta_2020[["metadata"]]
+meta_2025[["metadata"]]
+
+meta_combined <- list(
+    "2010_1" = meta_2010_1[["metadata"]],
+    "2010_2" = meta_2010_2[["metadata"]],
+    "2015" = meta_2015[["metadata"]],
+    "2020" = meta_2020[["metadata"]],
+    "2025" = meta_2025[["metadata"]]
+)
+
+df <- meta_combined %>%
+    map_dfr(~ as.data.frame(.), .id="source_year")
+
+df <- df %>%
+    mutate(
+        File = str_extract(`.`, "(?<=File=['\"])[^'\"]+"),
+        Creator = str_extract(`.`, "(?<=Creator=['\"])[^'\"]+"),
+        Author = str_extract(`.`, "(?<=Author=['\"])[^'\"]+"),
+        Producer = str_extract(`.`, "(?<=Producer=['\"])[^'\"]+"),
+        Title = str_extract(`.`, "(?<=Title=['\"])[^'\"]+")
+    )
 ```
 
+```{r, eval=FALSE}
+library(tidyr)
+clean <- function(df){ 
+    
+    meta_tibble <- as_tibble(df) %>%
+        mutate(
+            File = file_id,
+            Author = keys[1],
+            Creator = keys[2],
+            Producer = keys[3],
+            Title = keys[4]
+    ) %>%
+    unnest(everything()) %>%
+    select(-keys) %>%
+    distinct()
+return(meta_tibble)
+}
+clean("unl-department-budget-2010-2011-pt1.pdf")
+```
 ------------------------------------------------------------------------
 
-> Your response to open-ended questions goes here
+I decided to move on, but looked at the individual metadatas and found the info myself. The big thing I noticed was how different the 2025 budget is from the others. There was no title available and both the creator tool and producer were different from the others. Also, the modify dates are different but that should be obvious. Something that did stick out to me was the creation date being the same for 2015 and 2020, but I don't believe that would change how we go about extracting the pdf text. 
 
 ------------------------------------------------------------------------
 
@@ -101,12 +153,12 @@ Considering what you discovered in the previous step, do you need to adjust your
 ------------------------------------------------------------------------
 
 ```{r}
-
+df
 ```
 
 ------------------------------------------------------------------------
 
-> Your response to open-ended questions goes here
+The differences above make me think the layout or exact positioning for the 2025 budget will be different and will require different coordinates and functions to scrape the data correctly. I think I'll be able to modify the code I used for the first four to get the last pdf, but maybe that's just wishful thinking.   
 
 ------------------------------------------------------------------------
 
